@@ -81,11 +81,11 @@ export const FireMap: React.FC<FireMapProps> = ({
         <MapViewController center={center} zoom={zoom} />
 
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors | Satellite: NASA FIRMS'
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors | Satellite: NASA FIRMS / Sentinel-2'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
 
-        {/* ACTIVE ALERTS MARKERS OVERLAY (Phase 7) */}
+        {/* ACTIVE ALERTS MARKERS OVERLAY (Phase 7 & 8) */}
         {activeAlerts.map((alt) => {
           const isSelected = selectedAlert && selectedAlert.alert_id === alt.alert_id;
           const color = alt.risk_level === 'CRITICAL' ? '#ef4444' : '#f97316';
@@ -118,7 +118,7 @@ export const FireMap: React.FC<FireMapProps> = ({
                     </div>
                     <div className="popup-row">
                       <span className="popup-label">Classification:</span>
-                      <span className="popup-val">{alt.classification.replace('_', ' ')}</span>
+                      <span className="popup-val">{alt.classification.replace(/_/g, ' ')}</span>
                     </div>
                     <div className="popup-row">
                       <span className="popup-label">Status:</span>
@@ -128,12 +128,16 @@ export const FireMap: React.FC<FireMapProps> = ({
                       <span className="popup-label">Facility:</span>
                       <span className="popup-val">{alt.facility_name || 'None'}</span>
                     </div>
+                    <div className="popup-row">
+                      <span className="popup-label">Satellite Imagery:</span>
+                      <span className="popup-val" style={{ color: '#10b981', fontWeight: 600 }}>📡 Sentinel-2 Patch Ready</span>
+                    </div>
                     <button
                       className="btn btn-primary btn-sm"
                       style={{ marginTop: '0.5rem', width: '100%' }}
                       onClick={() => onSelectAlert(alt)}
                     >
-                      📋 Manage Incident Alert
+                      📡 Inspect Satellite & Incident Evidence
                     </button>
                   </div>
                 </div>
@@ -191,12 +195,16 @@ export const FireMap: React.FC<FireMapProps> = ({
                         <span className="popup-label">FRP:</span>
                         <span className="popup-val highlight-frp">{spot.frp} MW</span>
                       </div>
+                      <div className="popup-row">
+                        <span className="popup-label">Optical Evidence:</span>
+                        <span className="popup-val" style={{ color: '#38bdf8' }}>📡 Sentinel-2 Evidence</span>
+                      </div>
                       <button
                         className="btn btn-secondary btn-sm"
                         style={{ marginTop: '0.5rem', width: '100%' }}
                         onClick={() => onSelectHotspot(spot)}
                       >
-                        🔍 Inspect Risk & Location Context
+                        📡 Inspect Satellite & Risk Context
                       </button>
                     </div>
                   </div>
@@ -259,7 +267,7 @@ export const FireMap: React.FC<FireMapProps> = ({
                         style={{ marginTop: '0.5rem', width: '100%' }}
                         onClick={() => onSelectCluster(cluster)}
                       >
-                        📊 View Priority Details & Timeline
+                        📊 View Satellite & Priority Timeline
                       </button>
                     </div>
                   </div>

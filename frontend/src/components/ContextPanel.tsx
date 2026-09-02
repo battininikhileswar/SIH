@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { Hotspot, HotspotContextResponse, AiClassificationResponse, RiskScoreResponse } from '../types/hotspot';
+import { Hotspot, HotspotContextResponse, AiClassificationResponse, RiskScoreResponse, FusedEvidenceResponse } from '../types/hotspot';
 import { AiClassificationCard } from './AiClassificationCard';
 import { RiskScoreCard } from './RiskScoreCard';
+import { SatelliteEvidenceCard } from './SatelliteEvidenceCard';
 
 interface ContextPanelProps {
   selectedHotspot: Hotspot | null;
@@ -20,6 +21,7 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
 }) => {
   const [aiData, setAiData] = useState<AiClassificationResponse | null>(null);
   const [riskData, setRiskData] = useState<RiskScoreResponse | null>(null);
+  const [fusedEvidence, setFusedEvidence] = useState<FusedEvidenceResponse | null>(null);
   const [panelLoading, setPanelLoading] = useState<boolean>(false);
   const [panelError, setPanelError] = useState<string | null>(null);
 
@@ -32,9 +34,10 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
       try {
         const queryParams = `lat=${selectedHotspot.latitude}&lon=${selectedHotspot.longitude}&frp=${selectedHotspot.frp}&brightness=${selectedHotspot.brightness}&confidence=${selectedHotspot.confidence}`;
         
-        const [aiRes, riskRes] = await Promise.all([
+        const [aiRes, riskRes, satRes] = await Promise.all([
           fetch(`http://127.0.0.1:8000/api/hotspots/classify?${queryParams}`),
-          fetch(`http://127.0.0.1:8000/api/hotspots/risk?${queryParams}`)
+          fetch(`http://127.0.0.1:8000/api/hotspots/risk?${queryParams}`),
+          fetch(`http://127.0.0.1:8000/api/satellite/evidence?${queryParams}`)
         ]);
 
         if (!aiRes.ok || !riskRes.ok) {
@@ -43,9 +46,11 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
 
         const aiJson: AiClassificationResponse = await aiRes.json();
         const riskJson: RiskScoreResponse = await riskRes.json();
+        const satJson: FusedEvidenceResponse = satRes.ok ? await satRes.json() : null;
 
         setAiData(aiJson);
         setRiskData(riskJson);
+        setFusedEvidence(satJson);
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : 'Unable to fetch evaluation';
         setPanelError(msg);
@@ -92,7 +97,7 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
       <div className="panel-header">
         <div>
           <h3 className="panel-title">Location Context</h3>
-          <p className="panel-subtitle">OpenStreetMap Proximity & Risk Analysis</p>
+          <p className="panel-subtitle">OpenStreetMap Proximity & Satellite Intelligence</p>
         </div>
         <button className="panel-close-btn" onClick={onClose}>
           ✕
@@ -115,6 +120,12 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
             <span className="summary-val highlight-frp">{selectedHotspot.frp} MW / {selectedHotspot.brightness} K</span>
           </div>
         </div>
+
+        {/* Phase 8 Satellite Image Evidence */}
+        <SatelliteEvidenceCard
+          fusedEvidence={fusedEvidence}
+          loading={panelLoading}
+        />
 
         {/* Risk Priority Score Card */}
         <RiskScoreCard

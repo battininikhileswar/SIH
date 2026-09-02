@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { ThermalAlert } from '../types/hotspot';
+import React, { useState, useEffect } from 'react';
+import { ThermalAlert, FusedEvidenceResponse } from '../types/hotspot';
+import { SatelliteEvidenceCard } from './SatelliteEvidenceCard';
 
 interface AlertDetailPanelProps {
   alert: ThermalAlert | null;
@@ -15,6 +16,31 @@ export const AlertDetailPanel: React.FC<AlertDetailPanelProps> = ({
   const [resolutionNotes, setResolutionNotes] = useState<string>('');
   const [showNotesInput, setShowNotesInput] = useState<boolean>(false);
   const [pendingAction, setPendingAction] = useState<'resolve' | 'dismiss' | null>(null);
+  
+  const [fusedEvidence, setFusedEvidence] = useState<FusedEvidenceResponse | null>(null);
+  const [loadingSatellite, setLoadingSatellite] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (alert) {
+      setLoadingSatellite(true);
+      const frp = Number(alert.features?.frp || 0);
+      const brightness = Number(alert.features?.brightness || 320);
+      const url = `http://127.0.0.1:8000/api/satellite/evidence?lat=${alert.latitude}&lon=${alert.longitude}&frp=${frp}&brightness=${brightness}&persistence_score=${alert.persistence_score}`;
+
+      fetch(url)
+        .then((res) => res.json())
+        .then((data) => {
+          setFusedEvidence(data);
+          setLoadingSatellite(false);
+        })
+        .catch(() => {
+          setFusedEvidence(null);
+          setLoadingSatellite(false);
+        });
+    } else {
+      setFusedEvidence(null);
+    }
+  }, [alert]);
 
   if (!alert) return null;
 
@@ -96,11 +122,17 @@ export const AlertDetailPanel: React.FC<AlertDetailPanelProps> = ({
           </div>
         </div>
 
+        {/* Phase 8 Satellite Image Evidence Card */}
+        <SatelliteEvidenceCard
+          fusedEvidence={fusedEvidence}
+          loading={loadingSatellite}
+        />
+
         {/* Classification Card */}
         <div className="alert-section-box">
           <div className="box-title">🤖 AI Candidate Classification</div>
           <div className="box-content">
-            <div className="highlight-text">{alert.classification.replace('_', ' ')}</div>
+            <div className="highlight-text">{alert.classification.replace(/_/g, ' ')}</div>
             <div className="small-meta">Model Source: {alert.model_source}</div>
           </div>
         </div>

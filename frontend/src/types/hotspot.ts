@@ -162,3 +162,43 @@ export interface AlertStats {
   resolved_today: number;
   fetched_at: string;
 }
+
+export interface SatelliteEvidence {
+  image_available: boolean;
+  classification: 'INDUSTRIAL_FIRE' | 'NATURAL_FIRE' | 'PERSISTENT_THERMAL_SOURCE' | 'NON_FIRE' | 'UNKNOWN';
+  confidence: number;
+  source: string;
+  captured_at?: string;
+  image_url?: string;
+  visual_evidence: string;
+}
+
+export interface FusedEvidenceResponse {
+  final_classification: string;
+  combined_confidence: number;
+  combined_confidence_percentage: number;
+  combined_risk_score: number;
+  risk_level: 'CRITICAL' | 'HIGH' | 'MODERATE' | 'LOW';
+  fusion_summary: string;
+  evidence: {
+    firms: {
+      frp_mw: number;
+      brightness_k: number;
+      confidence: string;
+      summary: string;
+    };
+    osm: {
+      context: string;
+      nearby_facility: string;
+      distance_km: number | null;
+      summary: string;
+    };
+    persistence: {
+      persistence_score: number;
+      observation_count: number;
+      duration_hours: number;
+      summary: string;
+    };
+    satellite: SatelliteEvidence;
+  };
+}

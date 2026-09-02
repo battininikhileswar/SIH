@@ -6,11 +6,13 @@ os.environ["NUMEXPR_NUM_THREADS"] = "1"
 os.environ["OMP_NUM_THREADS"] = "1"
 
 import asyncio
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from fastapi import FastAPI, Query, HTTPException, Body
+from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
+from app.config import SATELLITE_CACHE_DIR
 from app.services.firms_service import fetch_firms_hotspots
 from app.services.osm_service import fetch_hotspot_osm_context, DEFAULT_SEARCH_RADIUS_KM
 from app.services.persistence_service import detect_persistent_clusters, DEFAULT_CLUSTER_RADIUS_KM
@@ -23,6 +25,10 @@ from app.services.alert_service import (
     transition_alert_status,
     get_alert_stats
 )
+from app.services.satellite_service import get_satellite_provider
+from app.services.image_processing_service import preprocess_satellite_image
+from app.services.satellite_classifier import get_satellite_classifier
+from app.services.evidence_fusion_service import fuse_thermal_evidence
 
 # Load environment variables from .env file if available
 load_dotenv()
@@ -478,3 +484,144 @@ def dismiss_alert(
     if error:
         raise HTTPException(status_code=400, detail=error)
     return alert
+
+
+# =====================================================================
+# PHASE 8: SATELLITE IMAGE INTELLIGENCE REST ENDPOINTS
+# =====================================================================
+
+@app.get("/api/satellite/evidence")
+async def get_satellite_evidence(
+    lat: float = Query(..., description="Latitude of thermal anomaly"),
+    lon: float = Query(..., description="Longitude of thermal anomaly"),
+    timestamp: Optional[str] = Query(None, description="Observation timestamp"),
+    frp: float = Query(0.0, description="Fire Radiative Power in MW"),
+    brightness: float = Query(320.0, description="Brightness temperature in K"),
+    confidence: str = Query("nominal", description="FIRMS confidence"),
+    persistence_score: float = Query(0.0, description="Persistence score 0 - 100")
+):
+    """
+    Satellite Image Intelligence & Evidence Fusion Endpoint.
+    Retrieves satellite image patch, runs computer vision classification,
+    and fuses with FIRMS, OSM, and persistence features.
+    """
+    if not (-90.0 <= lat <= 90.0) or not (-180.0 <= lon <= 180.0):
+        raise HTTPException(status_code=400, detail="Invalid latitude or longitude coordinates")
+
+    try:
+        # 1. Retrieve satellite image patch
+        provider = get_satellite_provider()
+        sat_data = await provider.fetch_satellite_image(lat=lat, lon=lon, timestamp=timestamp)
+
+        # 2. Preprocess satellite image patch if file exists
+        if sat_data.get("available") and sat_data.get("image_path"):
+            preprocess_satellite_image(sat_data["image_path"])
+
+        # 3. Fetch OSM context safely with timeout
+        try:
+            osm_context = await asyncio.wait_for(fetch_hotspot_osm_context(lat=lat, lon=lon, radius_km=5.0), timeout=5.0)
+        except Exception:
+            osm_context = None
+
+        spot_dict = {
+            "latitude": lat,
+            "longitude": lon,
+            "frp": frp,
+            "brightness": brightness,
+            "confidence": confidence,
+            "persistence_score": persistence_score,
+            "industrial_context": osm_context
+        }
+
+        # 4. Base AI & Risk Scoring
+        base_ai = classify_thermal_event(spot_dict, osm_context=osm_context)
+        risk_res = calculate_risk_score(spot_dict, osm_context=osm_context, ai_classification=base_ai)
+
+        # 5. Satellite Computer Vision Classification
+        classifier = get_satellite_classifier()
+        sat_cv_res = classifier.classify_image(sat_data.get("image_path", ""), metadata={
+            "industrial_distance_km": osm_context.get("nearby_features", [{}])[0].get("distance_km") if osm_context and osm_context.get("nearby_features") else None,
+            "persistence_score": persistence_score,
+            "frp": frp
+        })
+
+        # Merge satellite retrieval metadata with CV classification
+        sat_evidence_merged = {**sat_data, **sat_cv_res}
+
+        # 6. Multi-Modal Evidence Fusion
+        fused_result = fuse_thermal_evidence(
+            spot_dict=spot_dict,
+            osm_context=osm_context,
+            ai_classification=base_ai,
+            risk_result=risk_res,
+            satellite_evidence=sat_evidence_merged
+        )
+
+        return fused_result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Satellite intelligence processing error: {str(e)}")
+
+
+@app.get("/api/satellite/image/{patch_id}")
+def serve_satellite_image_patch(patch_id: str):
+    """Serve cached satellite image patch file from disk."""
+    filename = f"{patch_id}.png" if not patch_id.endswith(".png") else patch_id
+    file_path = os.path.join(SATELLITE_CACHE_DIR, filename)
+
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail=f"Satellite image patch {patch_id} not found.")
+
+    return FileResponse(file_path, media_type="image/png")
+
+
+@app.post("/api/satellite/analyze")
+async def analyze_satellite_patch(
+    lat: float = Body(..., description="Latitude of anomaly"),
+    lon: float = Body(..., description="Longitude of anomaly"),
+    timestamp: Optional[str] = Body(None, description="Timestamp"),
+    frp: float = Body(0.0, description="FRP in MW"),
+    brightness: float = Body(320.0, description="Brightness in K"),
+    persistence_score: float = Body(0.0, description="Persistence score")
+):
+    """Post body endpoint to run satellite patch generation & multi-modal analysis."""
+    return await get_satellite_evidence(
+        lat=lat,
+        lon=lon,
+        timestamp=timestamp,
+        frp=frp,
+        brightness=brightness,
+        persistence_score=persistence_score
+    )
+
+
+@app.get("/api/incidents/{incident_id}/evidence")
+async def get_incident_multi_modal_evidence(incident_id: str):
+    """
+    Retrieve comprehensive multi-modal evidence (FIRMS + OSM + Persistence + Satellite + Fused AI Decision)
+    for a specific incident / alert record by ID.
+    """
+    alert = get_alert_by_id(incident_id)
+    if not alert:
+        raise HTTPException(status_code=404, detail=f"Incident alert with ID {incident_id} not found.")
+
+    lat = alert["latitude"]
+    lon = alert["longitude"]
+    features = alert.get("features") or {}
+    frp = float(features.get("frp", 0.0))
+    brightness = float(features.get("brightness", 320.0))
+    persistence_score = float(alert.get("persistence_score", 0.0))
+
+    evidence_data = await get_satellite_evidence(
+        lat=lat,
+        lon=lon,
+        frp=frp,
+        brightness=brightness,
+        persistence_score=persistence_score
+    )
+
+    return {
+        "alert_id": incident_id,
+        "status": alert["status"],
+        "created_at": alert["created_at"],
+        "multi_modal_evidence": evidence_data
+    }
