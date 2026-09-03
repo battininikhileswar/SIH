@@ -10,7 +10,9 @@ interface ContextPanelProps {
   loading: boolean;
   error: string | null;
   onClose: () => void;
+  onOpenInvestigation?: (hotspot: Hotspot) => void;
 }
+
 
 export const ContextPanel: React.FC<ContextPanelProps> = ({
   selectedHotspot,
@@ -18,7 +20,9 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
   loading,
   error,
   onClose,
+  onOpenInvestigation,
 }) => {
+
   const [aiData, setAiData] = useState<AiClassificationResponse | null>(null);
   const [riskData, setRiskData] = useState<RiskScoreResponse | null>(null);
   const [fusedEvidence, setFusedEvidence] = useState<FusedEvidenceResponse | null>(null);
@@ -119,7 +123,22 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
             <span className="summary-label">FRP / Brightness:</span>
             <span className="summary-val highlight-frp">{selectedHotspot.frp} MW / {selectedHotspot.brightness} K</span>
           </div>
+          <div className="summary-row">
+            <span className="summary-label">Acquired:</span>
+            <span className="summary-val">{selectedHotspot.acquired_at || (selectedHotspot.acq_date ? `${selectedHotspot.acq_date} ${selectedHotspot.acq_time} UTC` : 'Observation timestamp')}</span>
+          </div>
+
         </div>
+
+        {onOpenInvestigation && (
+          <button
+            type="button"
+            className="btn-open-workspace"
+            onClick={() => onOpenInvestigation(selectedHotspot)}
+          >
+            ⚡ Open Full Investigation Workspace
+          </button>
+        )}
 
         {/* Phase 8 Satellite Image Evidence */}
         <SatelliteEvidenceCard

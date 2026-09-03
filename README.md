@@ -187,11 +187,81 @@ python -m app.ml.evaluate
 ### 4. Phase 9 REST Endpoints
 - `GET /api/satellite/model/status` — PyTorch model availability, version, and architecture.
 - `POST /api/satellite/model/predict` — Vision model inference directly on optical patch images.
-- `GET /api/satellite/model/metrics` — Test set accuracy, precision, recall, F1, and confusion matrix.
+```
+
+---
+
+## 🔍 Phase 10: Unified Investigation Workspace & SIH Demo Workflow
+
+Phase 10 unifies all system capabilities into an operational, audit-ready **Thermal Event Investigation Workspace** designed specifically for Smart India Hackathon (SIH) judges and control room operators.
+
+### Complete End-to-End Architecture
+```
+NASA FIRMS Satellite Telemetry (MODIS / VIIRS)
+               │
+               ▼
+OpenStreetMap Industrial Infrastructure Query
+               │
+               ▼
+Spatial-Temporal Persistence & Clustering Engine
+               │
+               ▼
+Explainable Multi-Feature Random Forest Classification
+               │
+               ▼
+Sentinel-2 Satellite Optical Image & PyTorch Computer Vision (ResNet-18)
+               │
+               ▼
+Multi-Modal Decision Fusion (FIRMS 20% + OSM 15% + Persistence 15% + AI 35% + CV 15%)
+               │
+               ▼
+Transparent Investigation Risk Prioritization Scoring (0 - 100)
+               │
+               ▼
+Automated Incident Alert Lifecycle & Deduplication
+               │
+               ▼
+Unified Thermal Event Investigation Workspace (Grad-CAM, Probabilities, Timeline, Actions)
+```
+
+---
+
+## 🏆 SIH Demonstration Workflow for Judges
+
+Judges can follow an actual thermal event from initial satellite detection to operational closure:
+
+1. **Launch Dashboard**:
+   - Open the web application at `http://localhost:5173`.
+   - The interactive Leaflet map renders NASA FIRMS thermal hotspots, persistent industrial clusters, and active alert incident markers across India.
+
+2. **One-Click "⚡ Demo Investigation"**:
+   - Click the prominent **⚡ Demo Investigation** button in the header.
+   - The platform dynamically identifies the highest-priority live thermal incident (e.g. `ALT-20260901-0001`), automatically centers and zooms the Leaflet map to the hotspot coordinates, and transitions directly into the **Thermal Event Investigation Workspace**.
+
+3. **Inspect Real-Time Multi-Modal Evidence**:
+   - **FIRMS Telemetry**: Real Fire Radiative Power (MW), Brightness Temperature (K), satellite instrument, and acquisition timestamp.
+   - **Persistence Metrics**: Recurrent observation count, temporal duration, spatial radius, and chronological detection sequence.
+   - **OSM Industrial Proximity**: Nearest industrial asset name (e.g. Petrochemical Refinery Complex), geodesic distance (km), and zoning context.
+   - **Explainable AI Classification**: Candidate classification with supporting explainability indicators and model source (`Random Forest`).
+   - **Sentinel-2 Optical Imagery & Grad-CAM**: View the $256 \times 256$ multi-spectral patch, switch toggles to reveal the **Grad-CAM Thermal Activation Heatmap**, and inspect class probabilities for `NON_FIRE`, `NATURAL_FIRE`, `INDUSTRIAL_FIRE`, and `PERSISTENT_THERMAL_SOURCE`.
+   - **Multi-Modal Decision Fusion**: Review the exact backend synthesis contributions and distinguish *investigation priority* from empirical fire probability.
+   - **Risk Prioritization Breakdown**: Transparent component scoring out of 100.
+
+4. **Verify Incident Lifecycle Management**:
+   - Advance the incident through its operational lifecycle:
+     - `NEW` → Click **[✓ Acknowledge Alert]**
+     - `ACKNOWLEDGED` → Click **[🔍 Start Active Investigation]**
+     - `INVESTIGATING` → Click **[✓ Mark Resolved]** with operational closure notes.
+   - The **Chronological Investigation Audit Trail** immediately updates with defensible timestamps and operator attribution.
+
+### Machine Learning Model Status & Prototype Scope
+> [!NOTE]
+> **Prototype & Trainable Architecture**: The current satellite computer vision model (`ResNet-18`) and multi-feature tabular classifier are functional proof-of-concept prototypes designed to validate the end-to-end multi-modal ingestion, inference, Grad-CAM explainability, and decision-fusion pipelines. While the architectural framework eliminates geographic data leakage and enforces strict evidence attribution, production deployment with high scientific precision requires continuous expansion of verified ground-truth multi-spectral imagery across diverse biomes and seasons.
 
 ---
 
 ## ⚡ Quick Start Guide
+
 
 ### 1. Backend Setup (FastAPI)
 ```bash
@@ -233,4 +303,5 @@ python tests/run_phase9_tests.py
 
 This project is built for **Smart India Hackathon (SIH) Problem Statement 26162**.  
 Geospatial data provided by **NASA FIRMS** (MODIS/VIIRS), **OpenStreetMap** (Overpass API), and **Sentinel-2** satellite imagery.
+
 

@@ -6,9 +6,11 @@ import { RiskScoreCard } from './RiskScoreCard';
 interface PersistencePanelProps {
   cluster: PersistentCluster | null;
   onClose: () => void;
+  onOpenInvestigation?: (cluster: PersistentCluster) => void;
 }
 
-export const PersistencePanel: React.FC<PersistencePanelProps> = ({ cluster, onClose }) => {
+export const PersistencePanel: React.FC<PersistencePanelProps> = ({ cluster, onClose, onOpenInvestigation }) => {
+
   const [aiData, setAiData] = useState<AiClassificationResponse | null>(null);
   const [riskData, setRiskData] = useState<RiskScoreResponse | null>(null);
   const [panelLoading, setPanelLoading] = useState<boolean>(false);
@@ -94,6 +96,17 @@ export const PersistencePanel: React.FC<PersistencePanelProps> = ({ cluster, onC
             <div className="classification-pill">{cluster.classification}</div>
           </div>
         </div>
+
+        {onOpenInvestigation && (
+          <button
+            type="button"
+            className="btn-open-workspace"
+            onClick={() => onOpenInvestigation(cluster)}
+          >
+            ⚡ Open Full Investigation Workspace
+          </button>
+        )}
+
 
         {/* Risk Priority Score Card */}
         <RiskScoreCard

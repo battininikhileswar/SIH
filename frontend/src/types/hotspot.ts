@@ -5,6 +5,8 @@ export interface Hotspot {
   confidence: string | number;
   frp: number;
   acquired_at: string;
+  acq_date?: string;
+  acq_time?: string;
   satellite: string;
   instrument: string;
   source: string;
@@ -38,8 +40,11 @@ export interface HotspotContextResponse {
   context_classification: 'INDUSTRIAL' | 'URBAN' | 'RURAL_OR_AGRICULTURAL' | 'UNKNOWN';
   facility_count: number;
   nearby_features: OsmFeature[];
+  nearby_facility?: string | null;
+  distance_km?: number | null;
   fetched_at: string;
 }
+
 
 export interface PersistentCluster {
   cluster_id: string;

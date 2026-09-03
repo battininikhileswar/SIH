@@ -6,13 +6,17 @@ interface AlertDetailPanelProps {
   alert: ThermalAlert | null;
   onClose: () => void;
   onStatusChange: (alertId: string, action: 'acknowledge' | 'investigate' | 'resolve' | 'dismiss', notes?: string) => void;
+  onOpenInvestigation?: (alert: ThermalAlert) => void;
 }
+
 
 export const AlertDetailPanel: React.FC<AlertDetailPanelProps> = ({
   alert,
   onClose,
   onStatusChange,
+  onOpenInvestigation,
 }) => {
+
   const [resolutionNotes, setResolutionNotes] = useState<string>('');
   const [showNotesInput, setShowNotesInput] = useState<boolean>(false);
   const [pendingAction, setPendingAction] = useState<'resolve' | 'dismiss' | null>(null);
@@ -121,6 +125,17 @@ export const AlertDetailPanel: React.FC<AlertDetailPanelProps> = ({
             </span>
           </div>
         </div>
+
+        {onOpenInvestigation && (
+          <button
+            type="button"
+            className="btn-open-workspace"
+            onClick={() => onOpenInvestigation(alert)}
+          >
+            ⚡ Open Full Investigation Workspace
+          </button>
+        )}
+
 
         {/* Phase 8 Satellite Image Evidence Card */}
         <SatelliteEvidenceCard
