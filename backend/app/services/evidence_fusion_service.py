@@ -12,12 +12,12 @@ def fuse_thermal_evidence(
     satellite_evidence: Optional[Dict[str, Any]] = None
 ) -> Dict[str, Any]:
     """
-    Multi-Modal Evidence Fusion Engine.
+    Multi-Modal Evidence Fusion Engine (Step 15).
     Combines:
       1. NASA FIRMS active fire satellite metrics
       2. OpenStreetMap industrial proximity & infrastructure context
       3. Spatial-temporal persistence scores & observation timeline
-      4. Satellite optical image computer vision classification & confidence
+      4. Trained Satellite Optical Image Vision Model classification & confidence
     Produces a unified decision confidence score (0.0 - 1.0) and multi-modal evidence breakdown.
     """
     # Extract FIRMS metrics
@@ -47,11 +47,13 @@ def fuse_thermal_evidence(
     sat_available = sat.get("image_available", False)
     sat_class = sat.get("classification", "UNKNOWN")
     sat_conf = float(sat.get("confidence", 0.0))
+    sat_model = sat.get("model", "ResNet18")
+    sat_model_type = sat.get("model_type", "trained_cv_model")
     sat_evidence_text = sat.get("visual_evidence", "Satellite optical imagery unavailable.")
 
-    # Multi-Modal Decision Fusion Rules
+    # Multi-Modal Decision Fusion Rules with Configurable Weights
     fused_classification = base_ai_class
-    confidence_weight_accum = base_confidence * 0.40
+    confidence_weight_accum = base_confidence * 0.35
 
     # 1. FIRMS Weight (20%)
     firms_score = min(1.0, (frp / 40.0) * 0.5 + (1.0 if "high" in confidence_raw else 0.5) * 0.5)
@@ -65,15 +67,16 @@ def fuse_thermal_evidence(
     persistence_normalized = min(1.0, persistence_score / 100.0)
     confidence_weight_accum += persistence_normalized * 0.15
 
-    # 4. Satellite Visual Evidence Weight (10%)
+    # 4. Satellite Computer Vision Model Weight (15%)
     if sat_available and sat_class != "UNKNOWN":
-        confidence_weight_accum += sat_conf * 0.10
-        # If satellite computer vision detects active optical heat signature over industrial zone
+        confidence_weight_accum += sat_conf * 0.15
+
+        # Decision rule: Trained vision model informs classification without overriding strong contradictory evidence
         if sat_class in ["INDUSTRIAL_FIRE", "PERSISTENT_THERMAL_SOURCE"] and is_industrial:
             fused_classification = "INDUSTRIAL_FIRE_CANDIDATE"
-        elif sat_class == "NATURAL_FIRE" and not is_industrial:
+        elif sat_class in ["NATURAL_FIRE", "WILDFIRE_CANDIDATE"] and not is_industrial:
             fused_classification = "WILDFIRE_CANDIDATE"
-        elif sat_class == "NON_FIRE":
+        elif sat_class == "NON_FIRE" and frp < 10.0 and not is_industrial:
             fused_classification = "AGRICULTURAL_BURNING_CANDIDATE"
 
     final_confidence = min(0.98, max(0.40, round(confidence_weight_accum, 2)))
@@ -81,7 +84,8 @@ def fuse_thermal_evidence(
     # Generate Human-Readable Multi-Modal Fusion Rationale Summary
     fusion_highlights = []
     if sat_available and sat_class != "UNKNOWN":
-        fusion_highlights.append(f"Satellite optical patch ({sat.get('source', 'Sentinel-2')}) classifies event as {sat_class} ({int(sat_conf * 100)}% visual confidence).")
+        model_desc = f"PyTorch Model ({sat_model})" if sat_model_type == "trained_cv_model" else f"Optical Classifier ({sat_model})"
+        fusion_highlights.append(f"{model_desc} classifies satellite patch as {sat_class} ({int(sat_conf * 100)}% visual confidence).")
     else:
         fusion_highlights.append("Satellite optical imagery unverified or unavailable; multi-modal decision relies on thermal & geospatial features.")
 
@@ -124,10 +128,13 @@ def fuse_thermal_evidence(
                 "image_available": sat_available,
                 "classification": sat_class,
                 "confidence": sat_conf,
+                "model": sat_model,
+                "model_type": sat_model_type,
                 "source": sat.get("source", "Sentinel-2 L2A"),
                 "captured_at": sat.get("captured_at"),
                 "image_url": sat.get("image_url"),
-                "visual_evidence": sat_evidence_text
+                "visual_evidence": sat_evidence_text,
+                "class_probabilities": sat.get("class_probabilities", {})
             }
         }
     }

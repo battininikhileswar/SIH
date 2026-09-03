@@ -42,3 +42,21 @@ ml/datasets/*
 !ml/datasets/.gitkeep
 ml/models/*
 !ml/models/.gitkeep
+
+# Satellite generated images and binary model weights
+data/satellite/cache/*
+!data/satellite/cache/.gitkeep
+data/satellite/raw/*
+!data/satellite/raw/.gitkeep
+data/satellite/processed/*
+!data/satellite/processed/.gitkeep
+data/satellite/non_fire/*
+!data/satellite/non_fire/.gitkeep
+data/satellite/natural_fire/*
+!data/satellite/natural_fire/.gitkeep
+data/satellite/industrial_fire/*
+!data/satellite/industrial_fire/.gitkeep
+data/satellite/persistent_thermal/*
+!data/satellite/persistent_thermal/.gitkeep
+*.pth
+

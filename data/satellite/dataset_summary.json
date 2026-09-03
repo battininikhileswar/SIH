@@ -1,0 +1,16 @@
+{
+  "total_images": 120,
+  "class_counts": {
+    "NON_FIRE": 30,
+    "NATURAL_FIRE": 30,
+    "INDUSTRIAL_FIRE": 30,
+    "PERSISTENT_THERMAL_SOURCE": 30
+  },
+  "split_counts": {
+    "train": 83,
+    "val": 21,
+    "test": 16
+  },
+  "dataset_dir": "C:\\Users\\DELL\\OneDrive\\Desktop\\SIH-26162\\data\\satellite",
+  "timestamp": "2026-09-03 13:35:29 UTC"
+}

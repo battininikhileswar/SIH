@@ -1,0 +1,17 @@
+{
+  "image_id": "sat_714838cf48",
+  "latitude": 17.806800000000003,
+  "longitude": 83.33850000000001,
+  "timestamp": "2026-09-01 12:30 UTC",
+  "satellite": "Sentinel-2",
+  "firms_source": "NASA FIRMS",
+  "firms_confidence": "nominal",
+  "firms_frp": 0.0,
+  "osm_industrial": false,
+  "osm_facility_type": null,
+  "label": "NON_FIRE",
+  "label_id": 0,
+  "label_source": "nominal_background_spatial_offset",
+  "split": "train",
+  "processed_image_path": "C:\\Users\\DELL\\OneDrive\\Desktop\\SIH-26162\\data\\satellite\\processed\\sat_714838cf48.png"
+}

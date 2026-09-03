@@ -1,0 +1,20 @@
+{
+  "class_to_id": {
+    "NON_FIRE": 0,
+    "NATURAL_FIRE": 1,
+    "INDUSTRIAL_FIRE": 2,
+    "PERSISTENT_THERMAL_SOURCE": 3
+  },
+  "id_to_class": {
+    "0": "NON_FIRE",
+    "1": "NATURAL_FIRE",
+    "2": "INDUSTRIAL_FIRE",
+    "3": "PERSISTENT_THERMAL_SOURCE"
+  },
+  "classes": [
+    "NON_FIRE",
+    "NATURAL_FIRE",
+    "INDUSTRIAL_FIRE",
+    "PERSISTENT_THERMAL_SOURCE"
+  ]
+}

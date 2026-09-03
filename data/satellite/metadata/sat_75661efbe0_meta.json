@@ -1,0 +1,17 @@
+{
+  "image_id": "sat_75661efbe0",
+  "latitude": 28.49807,
+  "longitude": 97.02458,
+  "timestamp": "2026-09-01 07:30 UTC",
+  "satellite": "Sentinel-2",
+  "firms_source": "NASA FIRMS",
+  "firms_confidence": "nominal",
+  "firms_frp": 5.45,
+  "osm_industrial": true,
+  "osm_facility_type": "industrial",
+  "label": "PERSISTENT_THERMAL_SOURCE",
+  "label_id": 3,
+  "label_source": "persistence_cluster_verified",
+  "split": "val",
+  "processed_image_path": "C:\\Users\\DELL\\OneDrive\\Desktop\\SIH-26162\\data\\satellite\\processed\\sat_75661efbe0.png"
+}

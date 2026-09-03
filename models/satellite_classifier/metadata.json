@@ -1,0 +1,15 @@
+{
+  "model": "resnet18",
+  "model_version": "1.0",
+  "input_channels": 3,
+  "image_size": 256,
+  "num_classes": 4,
+  "classes": [
+    "NON_FIRE",
+    "NATURAL_FIRE",
+    "INDUSTRIAL_FIRE",
+    "PERSISTENT_THERMAL_SOURCE"
+  ],
+  "best_val_accuracy": 0.5294,
+  "weights_file": "best_model.pth"
+}

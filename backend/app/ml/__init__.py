@@ -1,4 +1,2 @@
-"""
-SIH 26162 Machine Learning Package
-Explainable AI Thermal Source & Industrial Fire Classification Engine
-"""
+# Machine Learning Package for SIH 26162
+# Phase 5 Tabular Classifier & Phase 9 Satellite Computer Vision Model

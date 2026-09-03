@@ -5,6 +5,7 @@ os.environ["MKL_NUM_THREADS"] = "1"
 os.environ["NUMEXPR_NUM_THREADS"] = "1"
 os.environ["OMP_NUM_THREADS"] = "1"
 
+import json
 import asyncio
 from typing import Optional, List, Dict, Any
 from fastapi import FastAPI, Query, HTTPException, Body
@@ -12,7 +13,7 @@ from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
-from app.config import SATELLITE_CACHE_DIR
+from app.config import SATELLITE_CACHE_DIR, SATELLITE_MODEL_DIR, SATELLITE_METRICS_DIR
 from app.services.firms_service import fetch_firms_hotspots
 from app.services.osm_service import fetch_hotspot_osm_context, DEFAULT_SEARCH_RADIUS_KM
 from app.services.persistence_service import detect_persistent_clusters, DEFAULT_CLUSTER_RADIUS_KM
@@ -487,7 +488,7 @@ def dismiss_alert(
 
 
 # =====================================================================
-# PHASE 8: SATELLITE IMAGE INTELLIGENCE REST ENDPOINTS
+# PHASE 8 & 9: SATELLITE IMAGE INTELLIGENCE REST ENDPOINTS
 # =====================================================================
 
 @app.get("/api/satellite/evidence")
@@ -501,7 +502,7 @@ async def get_satellite_evidence(
     persistence_score: float = Query(0.0, description="Persistence score 0 - 100")
 ):
     """
-    Satellite Image Intelligence & Evidence Fusion Endpoint.
+    Satellite Image Intelligence & Multi-Modal Evidence Fusion Endpoint.
     Retrieves satellite image patch, runs computer vision classification,
     and fuses with FIRMS, OSM, and persistence features.
     """
@@ -537,7 +538,7 @@ async def get_satellite_evidence(
         base_ai = classify_thermal_event(spot_dict, osm_context=osm_context)
         risk_res = calculate_risk_score(spot_dict, osm_context=osm_context, ai_classification=base_ai)
 
-        # 5. Satellite Computer Vision Classification
+        # 5. Satellite Computer Vision Classification (Phase 9 Model Adapter)
         classifier = get_satellite_classifier()
         sat_cv_res = classifier.classify_image(sat_data.get("image_path", ""), metadata={
             "industrial_distance_km": osm_context.get("nearby_features", [{}])[0].get("distance_km") if osm_context and osm_context.get("nearby_features") else None,
@@ -625,3 +626,83 @@ async def get_incident_multi_modal_evidence(incident_id: str):
         "created_at": alert["created_at"],
         "multi_modal_evidence": evidence_data
     }
+
+
+# =====================================================================
+# PHASE 9: SATELLITE ML MODEL STATUS & INFERENCE REST ENDPOINTS
+# =====================================================================
+
+@app.get("/api/satellite/model/status")
+def get_satellite_model_status():
+    """
+    Phase 9 Satellite Vision Model Status Endpoint (Step 16).
+    Returns PyTorch model availability, architecture, version, class names, and training summary.
+    """
+    meta_file = os.path.join(SATELLITE_MODEL_DIR, "metadata.json")
+    weights_file = os.path.join(SATELLITE_MODEL_DIR, "best_model.pth")
+    metrics_file = os.path.join(SATELLITE_METRICS_DIR, "metrics.json")
+
+    is_available = os.path.exists(weights_file)
+
+    meta_data = {}
+    if os.path.exists(meta_file):
+        try:
+            with open(meta_file, "r", encoding="utf-8") as f:
+                meta_data = json.load(f)
+        except Exception:
+            pass
+
+    metrics_data = {}
+    if os.path.exists(metrics_file):
+        try:
+            with open(metrics_file, "r", encoding="utf-8") as f:
+                metrics_data = json.load(f)
+        except Exception:
+            pass
+
+    return {
+        "available": is_available,
+        "model": meta_data.get("model", "resnet18"),
+        "version": meta_data.get("model_version", "1.0"),
+        "classes": [
+            "NON_FIRE",
+            "NATURAL_FIRE",
+            "INDUSTRIAL_FIRE",
+            "PERSISTENT_THERMAL_SOURCE"
+        ],
+        "image_size": meta_data.get("image_size", 256),
+        "best_val_accuracy": meta_data.get("best_val_accuracy"),
+        "metrics": metrics_data
+    }
+
+
+@app.post("/api/satellite/model/predict")
+def predict_satellite_model(
+    image_path: str = Body(..., description="Absolute file path to satellite patch image")
+):
+    """
+    Phase 9 Model Predict Endpoint (Step 16).
+    Runs PyTorch vision model inference directly on an image patch file.
+    """
+    classifier = get_satellite_classifier()
+    result = classifier.classify_image(image_path)
+    return result
+
+
+@app.get("/api/satellite/model/metrics")
+def get_satellite_model_metrics():
+    """
+    Phase 9 Model Metrics Endpoint (Step 16).
+    Returns test accuracy, precision, recall, F1 score, and confusion matrix.
+    """
+    metrics_file = os.path.join(SATELLITE_METRICS_DIR, "metrics.json")
+    if not os.path.exists(metrics_file):
+        return {
+            "evaluated": False,
+            "message": "Model evaluation metrics unavailable. Run python -m app.ml.evaluate first."
+        }
+
+    with open(metrics_file, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    return data

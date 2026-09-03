@@ -168,10 +168,17 @@ export interface SatelliteEvidence {
   classification: 'INDUSTRIAL_FIRE' | 'NATURAL_FIRE' | 'PERSISTENT_THERMAL_SOURCE' | 'NON_FIRE' | 'UNKNOWN';
   confidence: number;
   source: string;
+  model?: string;
+  model_type?: string;
+  model_version?: string;
   captured_at?: string;
   image_url?: string;
   visual_evidence: string;
+  class_probabilities?: Record<string, number>;
+  gradcam_overlay_path?: string;
+  gradcam_region?: string;
 }
+
 
 export interface FusedEvidenceResponse {
   final_classification: string;

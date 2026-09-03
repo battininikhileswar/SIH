@@ -149,6 +149,46 @@ SATELLITE_CACHE_DIR=../data/satellite/cache
 SATELLITE_DATASET_DIR=../data/satellite
 ```
 
+```
+
+---
+
+## 🧠 Phase 9: Real Satellite Dataset & Machine Learning Pipeline
+
+Phase 9 converts the optical image infrastructure into a real machine learning dataset, training pipeline, and evaluation framework using PyTorch (`ResNet18` / `EfficientNet-B0`).
+
+### 1. Dataset Generation & Geographic-Aware Splitting
+```bash
+python data/satellite/build_dataset.py --limit 30
+```
+- Queries real **NASA FIRMS** active fire detections, **OpenStreetMap** industrial infrastructure context, and **spatial-temporal persistence clusters**.
+- Assigns defensible, non-fabricated labels across 4 classes:
+  - `0`: `NON_FIRE` (Nominal background terrain)
+  - `1`: `NATURAL_FIRE` (Forest/agricultural fires in non-industrial terrain)
+  - `2`: `INDUSTRIAL_FIRE` (Hotspots localized within 1.5 km of heavy industrial infrastructure)
+  - `3`: `PERSISTENT_THERMAL_SOURCE` (Verified clusters with persistence score $\ge 50$ / industrial flaring)
+- Applies **Geographic-Aware Clustering**: Groups points within 2.0 km into spatial clusters and assigns entire clusters to `train` (70%), `val` (15%), or `test` (15%) splits, eliminating spatial data leakage.
+
+### 2. Model Training
+```bash
+cd backend
+python -m app.ml.train --epochs 5 --batch-size 8 --model-name resnet18
+```
+- Trains transfer learning model (`ResNet18`) with Cross-Entropy Loss, AdamW optimizer, and Cosine Annealing learning rate schedule.
+- Saves best model checkpoint to `models/satellite_classifier/best_model.pth`.
+
+### 3. Model Evaluation
+```bash
+cd backend
+python -m app.ml.evaluate
+```
+- Generates `metrics.json`, `classification_report.json`, `confusion_matrix.json`, and `confusion_matrix.png` under `data/satellite/metrics/`.
+
+### 4. Phase 9 REST Endpoints
+- `GET /api/satellite/model/status` — PyTorch model availability, version, and architecture.
+- `POST /api/satellite/model/predict` — Vision model inference directly on optical patch images.
+- `GET /api/satellite/model/metrics` — Test set accuracy, precision, recall, F1, and confusion matrix.
+
 ---
 
 ## ⚡ Quick Start Guide
@@ -166,9 +206,11 @@ pip install -r requirements.txt
 python -m uvicorn app.main:app --port 8000 --host 127.0.0.1
 ```
 
-### 2. Dataset Infrastructure Initialization
+### 2. Dataset Infrastructure & Training
 ```bash
-python data/satellite/prepare_dataset.py
+python data/satellite/build_dataset.py --limit 30
+python -m app.ml.train --epochs 5
+python -m app.ml.evaluate
 ```
 
 ### 3. Frontend Setup (React + Vite + TypeScript)
@@ -182,6 +224,7 @@ npm run dev
 ```bash
 cd backend
 python -m unittest tests/test_phase8_satellite.py
+python tests/run_phase9_tests.py
 ```
 
 ---
@@ -190,3 +233,4 @@ python -m unittest tests/test_phase8_satellite.py
 
 This project is built for **Smart India Hackathon (SIH) Problem Statement 26162**.  
 Geospatial data provided by **NASA FIRMS** (MODIS/VIIRS), **OpenStreetMap** (Overpass API), and **Sentinel-2** satellite imagery.
+

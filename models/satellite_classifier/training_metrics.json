@@ -1,0 +1,40 @@
+{
+  "model_name": "resnet18",
+  "epochs_trained": 5,
+  "batch_size": 8,
+  "learning_rate": 0.0001,
+  "best_val_accuracy": 0.5294,
+  "best_val_accuracy_percentage": 52.94,
+  "total_duration_seconds": 429.77,
+  "history": {
+    "train_loss": [
+      1.4874,
+      1.269,
+      1.2297,
+      1.2076,
+      1.2257
+    ],
+    "train_acc": [
+      0.3534,
+      0.4586,
+      0.5188,
+      0.5489,
+      0.5263
+    ],
+    "val_loss": [
+      1.2259,
+      2.007,
+      2.1108,
+      1.8613,
+      1.8423
+    ],
+    "val_acc": [
+      0.5294,
+      0.1471,
+      0.1471,
+      0.1471,
+      0.1471
+    ]
+  },
+  "trained_at": "2026-09-03 13:45:01 UTC"
+}

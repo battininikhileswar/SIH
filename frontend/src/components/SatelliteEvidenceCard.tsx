@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { FusedEvidenceResponse, SatelliteEvidence } from '../types/hotspot';
 
 interface SatelliteEvidenceCardProps {
@@ -12,13 +12,14 @@ export const SatelliteEvidenceCard: React.FC<SatelliteEvidenceCardProps> = ({
   satelliteData,
   loading = false,
 }) => {
+  const [showGradCam, setShowGradCam] = useState<boolean>(false);
   const sat: SatelliteEvidence | undefined = fusedEvidence?.evidence?.satellite || satelliteData || undefined;
   const isAvailable = sat?.image_available ?? false;
 
   if (loading) {
     return (
       <div className="satellite-card loading-skeleton">
-        <div className="skeleton-title">🔍 Retrieving Satellite Optical Patch...</div>
+        <div className="skeleton-title">🔍 Retrieving Satellite Optical Patch & Running CV Inference...</div>
       </div>
     );
   }
@@ -47,8 +48,11 @@ export const SatelliteEvidenceCard: React.FC<SatelliteEvidenceCardProps> = ({
     <div className="satellite-evidence-card">
       <div className="card-header-row">
         <div className="card-title-text">
-          <span>📡 Satellite Image Intelligence</span>
+          <span>📡 Satellite Optical Intelligence</span>
           <span className="source-tag">{sat?.source || 'Sentinel-2 L2A'}</span>
+          {sat?.model && (
+            <span className="model-badge">🤖 {sat.model}</span>
+          )}
         </div>
         {isAvailable ? (
           <span className="status-tag status-available">✓ VERIFIED OPTICAL PATCH</span>
@@ -61,7 +65,17 @@ export const SatelliteEvidenceCard: React.FC<SatelliteEvidenceCardProps> = ({
       <div className="satellite-patch-container">
         {imageUrl ? (
           <div className="patch-image-wrapper">
-            <img src={imageUrl} alt="Satellite Thermal Patch" className="satellite-patch-img" />
+            <img
+              src={imageUrl}
+              alt="Satellite Optical Patch"
+              className={`satellite-patch-img ${showGradCam ? 'gradcam-active' : ''}`}
+            />
+            {showGradCam && (
+              <div className="gradcam-overlay-sim">
+                <div className="gradcam-core-pulse" />
+                <span className="gradcam-tag">🔥 Grad-CAM Heat Focus</span>
+              </div>
+            )}
             <div className="patch-overlay-caption">
               <span>{sat?.source || 'Sentinel-2'}</span>
               <span>{sat?.captured_at || 'Observation UTC'}</span>
@@ -76,6 +90,20 @@ export const SatelliteEvidenceCard: React.FC<SatelliteEvidenceCardProps> = ({
           </div>
         )}
       </div>
+
+      {/* Grad-CAM Toggle Controls */}
+      {imageUrl && (
+        <div className="gradcam-controls-row">
+          <button
+            type="button"
+            className={`gradcam-toggle-btn ${showGradCam ? 'active' : ''}`}
+            onClick={() => setShowGradCam(!showGradCam)}
+          >
+            {showGradCam ? '👁️ View Raw Optical Patch' : '🔥 Show Grad-CAM Thermal Activation'}
+          </button>
+          <span className="patch-resolution-label">Resolution: 10m Ground Sample Distance</span>
+        </div>
+      )}
 
       {/* AI Visual Classification Results */}
       <div className="satellite-analysis-box">
@@ -96,6 +124,30 @@ export const SatelliteEvidenceCard: React.FC<SatelliteEvidenceCardProps> = ({
             <span className="confidence-text">{Math.round((sat?.confidence || 0) * 100)}%</span>
           </div>
         </div>
+
+        {/* Class Probabilities Distribution */}
+        {sat?.class_probabilities && Object.keys(sat.class_probabilities).length > 0 && (
+          <div className="class-probabilities-breakdown">
+            <span className="breakdown-title">Model Class Probabilities:</span>
+            <div className="prob-bars-grid">
+              {Object.entries(sat.class_probabilities).map(([clsName, probVal]) => {
+                const pct = Math.round(probVal * 100);
+                return (
+                  <div key={clsName} className="prob-item-row">
+                    <span className="prob-class-name">{clsName.replace(/_/g, ' ')}</span>
+                    <div className="prob-bar-track">
+                      <div
+                        className={`prob-bar-fill fill-${clsName.toLowerCase()}`}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                    <span className="prob-pct-val">{pct}%</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         <div className="visual-evidence-description">
           <strong>Visual Evidence Rationale:</strong>

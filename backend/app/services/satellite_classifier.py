@@ -5,16 +5,17 @@ from abc import ABC, abstractmethod
 from typing import Dict, Any, Optional
 from PIL import Image
 
+from app.config import SATELLITE_CLASSIFIER, SATELLITE_MODEL_DIR
 from app.services.image_processing_service import validate_satellite_image
 
 logger = logging.getLogger(__name__)
 
-# Valid Satellite Optical Event Classes
+# Target Architecture Dataset Classes (Step 3)
 SATELLITE_CLASSES = [
-    "INDUSTRIAL_FIRE",
-    "NATURAL_FIRE",
-    "PERSISTENT_THERMAL_SOURCE",
     "NON_FIRE",
+    "NATURAL_FIRE",
+    "INDUSTRIAL_FIRE",
+    "PERSISTENT_THERMAL_SOURCE",
     "UNKNOWN"
 ]
 
@@ -28,28 +29,80 @@ class BaseSatelliteImageClassifier(ABC):
         pass
 
 
+class TrainedSatelliteVisionClassifier(BaseSatelliteImageClassifier):
+    """
+    Production Trainable Computer Vision Model Classifier Adapter (Step 13).
+    Wraps trained PyTorch vision model (ResNet18 / EfficientNet-B0) loaded from models/satellite_classifier/best_model.pth.
+    Implements BaseSatelliteImageClassifier interface and incorporates Grad-CAM visual explanations.
+    """
+
+    def __init__(self, model_dir: str = SATELLITE_MODEL_DIR):
+        self.model_dir = model_dir
+        self.engine = None
+        self._init_engine()
+
+    def _init_engine(self):
+        try:
+            from app.ml.inference import get_inference_engine
+            self.engine = get_inference_engine()
+        except Exception as e:
+            logger.error(f"Failed to initialize PyTorch inference engine: {e}")
+            self.engine = None
+
+    def classify_image(self, image_path: str, metadata: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        timestamp_str = time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime())
+
+        if not self.engine or not self.engine.is_loaded:
+            return {
+                "classification": "UNKNOWN",
+                "confidence": 0.0,
+                "visual_evidence": "Trained PyTorch vision model is uninitialized or missing trained weights checkpoint.",
+                "model": "trained_cv_model",
+                "model_version": "1.0",
+                "model_type": "trained_cv_model",
+                "timestamp": timestamp_str,
+                "image_available": False,
+                "features": {}
+            }
+
+        result = self.engine.predict_patch(image_path, metadata=metadata)
+        result["timestamp"] = timestamp_str
+
+        # Generate Grad-CAM visual explanation overlay if image exists
+        if result.get("image_available") and image_path and os.path.exists(image_path):
+            try:
+                from app.ml.gradcam import generate_gradcam_explanation
+                cam_res = generate_gradcam_explanation(image_path)
+                if cam_res.get("success"):
+                    result["gradcam_overlay_path"] = cam_res.get("heatmap_path")
+                    result["gradcam_region"] = cam_res.get("highlighted_region")
+            except Exception as e:
+                logger.warning(f"Grad-CAM overlay error: {e}")
+
+        return result
+
+
 class ModularHeuristicVisionClassifier(BaseSatelliteImageClassifier):
     """
-    Modular Multi-Spectral Satellite Image Classifier.
-    Analyzes optical heat signature, RGB color channels, thermal intensity core ratio,
-    and fuses with spatial metadata to classify thermal anomaly image patches.
-    Extensible interface designed for drop-in replacement with CNN or Vision Transformer models.
+    Modular Multi-Spectral Satellite Image Classifier (Step 14).
+    Fallback heuristic classifier used when trained model weights are unavailable.
     """
 
     def __init__(self):
         self.model_name = "ModularHeuristicVisionClassifier-v1.0"
+        self.model_type = "heuristic_fallback"
 
     def classify_image(self, image_path: str, metadata: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         timestamp_str = time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime())
         meta = metadata or {}
 
-        # Handle missing or invalid image file gracefully
         if not image_path or not os.path.exists(image_path):
             return {
                 "classification": "UNKNOWN",
                 "confidence": 0.0,
                 "visual_evidence": "Satellite image patch unavailable for computer vision classification.",
                 "model": self.model_name,
+                "model_type": self.model_type,
                 "timestamp": timestamp_str,
                 "image_available": False,
                 "features": {}
@@ -62,6 +115,7 @@ class ModularHeuristicVisionClassifier(BaseSatelliteImageClassifier):
                 "confidence": 0.0,
                 "visual_evidence": f"Satellite image validation failed: {err}",
                 "model": self.model_name,
+                "model_type": self.model_type,
                 "timestamp": timestamp_str,
                 "image_available": False,
                 "features": {}
@@ -72,11 +126,9 @@ class ModularHeuristicVisionClassifier(BaseSatelliteImageClassifier):
                 if img.mode != "RGB":
                     img = img.convert("RGB")
 
-                # Get pixel data safely
                 pixels = list(img.getdata())
                 total_pixels = len(pixels)
 
-                # Compute mean RGB channel intensities
                 r_sum = sum(p[0] for p in pixels)
                 g_sum = sum(p[1] for p in pixels)
                 b_sum = sum(p[2] for p in pixels)
@@ -85,20 +137,16 @@ class ModularHeuristicVisionClassifier(BaseSatelliteImageClassifier):
                 g_avg = g_sum / total_pixels
                 b_avg = b_sum / total_pixels
 
-                # Count thermal heat core pixels (High Red/Yellow intensity)
                 heat_core_pixels = sum(1 for p in pixels if p[0] > 200 and p[1] > 100)
                 heat_core_ratio = round(heat_core_pixels / total_pixels, 4)
 
-                # Spectral Thermal Index (STI) calculation
                 spectral_thermal_index = round((r_avg - (g_avg + b_avg) / 2.0) / 255.0, 4)
 
-                # Contextual features from metadata
                 industrial_dist = meta.get("industrial_distance_km")
                 is_industrial = industrial_dist is not None and industrial_dist <= 1.5
                 persistence_score = float(meta.get("persistence_score", 0.0))
                 frp = float(meta.get("frp", 0.0))
 
-                # Classification Logic
                 if heat_core_ratio > 0.02 or spectral_thermal_index > 0.35 or frp > 35.0:
                     if is_industrial or meta.get("is_industrial_zone") == 1:
                         classification = "INDUSTRIAL_FIRE"
@@ -126,6 +174,7 @@ class ModularHeuristicVisionClassifier(BaseSatelliteImageClassifier):
                     "confidence": confidence,
                     "visual_evidence": evidence,
                     "model": self.model_name,
+                    "model_type": self.model_type,
                     "timestamp": timestamp_str,
                     "image_available": True,
                     "features": {
@@ -143,19 +192,34 @@ class ModularHeuristicVisionClassifier(BaseSatelliteImageClassifier):
                 "confidence": 0.0,
                 "visual_evidence": f"Classification error: {str(ex)}",
                 "model": self.model_name,
+                "model_type": self.model_type,
                 "timestamp": timestamp_str,
                 "image_available": True,
                 "features": {}
             }
 
 
-# Global classifier instance
+# Singleton classifier instance
 _classifier_instance: Optional[BaseSatelliteImageClassifier] = None
 
 
 def get_satellite_classifier() -> BaseSatelliteImageClassifier:
-    """Factory function returning configured SatelliteImageClassifier instance."""
+    """
+    Factory function returning configured SatelliteImageClassifier instance.
+    Checks config SATELLITE_CLASSIFIER ('trained' or 'heuristic') and model weights availability on disk.
+    Defaults safely to TrainedSatelliteVisionClassifier when weights exist, or ModularHeuristicVisionClassifier fallback.
+    """
     global _classifier_instance
+
+    weights_path = os.path.join(SATELLITE_MODEL_DIR, "best_model.pth")
+    use_trained = (SATELLITE_CLASSIFIER.lower() == "trained") and os.path.exists(weights_path)
+
     if _classifier_instance is None:
-        _classifier_instance = ModularHeuristicVisionClassifier()
+        if use_trained:
+            logger.info("Initializing TrainedSatelliteVisionClassifier with PyTorch model weights.")
+            _classifier_instance = TrainedSatelliteVisionClassifier(model_dir=SATELLITE_MODEL_DIR)
+        else:
+            logger.info("Initializing ModularHeuristicVisionClassifier fallback.")
+            _classifier_instance = ModularHeuristicVisionClassifier()
+
     return _classifier_instance

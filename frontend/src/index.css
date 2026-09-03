@@ -846,3 +846,156 @@ body {
   font-size: 0.85rem;
   background-color: #0f172a;
 }
+
+/* Phase 9 Satellite Intelligence Enhancements */
+.model-badge {
+  background: rgba(99, 102, 241, 0.2);
+  color: #a5b4fc;
+  border: 1px solid rgba(99, 102, 241, 0.4);
+  font-size: 0.72rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.gradcam-controls-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.4rem 0.2rem;
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+.gradcam-toggle-btn {
+  background: #1e293b;
+  color: #e2e8f0;
+  border: 1px solid #475569;
+  padding: 0.35rem 0.75rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.gradcam-toggle-btn:hover {
+  background: #334155;
+  border-color: #94a3b8;
+}
+
+.gradcam-toggle-btn.active {
+  background: #b91c1c;
+  color: #fff;
+  border-color: #ef4444;
+}
+
+.gradcam-overlay-sim {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at center, rgba(239, 68, 68, 0.45) 0%, rgba(249, 115, 22, 0.25) 40%, transparent 70%);
+}
+
+.gradcam-core-pulse {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  border: 2px solid rgba(254, 240, 138, 0.9);
+  background: radial-gradient(circle, rgba(239, 68, 68, 0.8) 0%, rgba(220, 38, 38, 0.4) 70%);
+  animation: pulse 1.8s infinite;
+}
+
+.gradcam-tag {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: rgba(185, 28, 28, 0.85);
+  color: #fef08a;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.class-probabilities-breakdown {
+  margin: 0.6rem 0;
+  padding: 0.6rem;
+  background: #0f172a;
+  border-radius: 6px;
+  border: 1px solid #1e293b;
+}
+
+.breakdown-title {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #cbd5e1;
+  margin-bottom: 0.4rem;
+}
+
+.prob-bars-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.prob-item-row {
+  display: grid;
+  grid-template-columns: 140px 1fr 40px;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.72rem;
+}
+
+.prob-class-name {
+  color: #94a3b8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.prob-bar-track {
+  height: 6px;
+  background: #1e293b;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.prob-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.prob-bar-fill.fill-industrial_fire {
+  background: #ef4444;
+}
+
+.prob-bar-fill.fill-natural_fire {
+  background: #f97316;
+}
+
+.prob-bar-fill.fill-persistent_thermal_source {
+  background: #a855f7;
+}
+
+.prob-bar-fill.fill-non_fire {
+  background: #10b981;
+}
+
+.prob-pct-val {
+  text-align: right;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+

@@ -1,0 +1,17 @@
+{
+  "image_id": "sat_ff2876397e",
+  "latitude": 29.9098,
+  "longitude": 74.95193,
+  "timestamp": "2026-09-03 09:39 UTC",
+  "satellite": "Sentinel-2",
+  "firms_source": "NASA FIRMS",
+  "firms_confidence": "60",
+  "firms_frp": 48.91,
+  "osm_industrial": true,
+  "osm_facility_type": "industrial",
+  "label": "INDUSTRIAL_FIRE",
+  "label_id": 2,
+  "label_source": "firms_osm_verified",
+  "split": "val",
+  "processed_image_path": "C:\\Users\\DELL\\OneDrive\\Desktop\\SIH-26162\\data\\satellite\\processed\\sat_ff2876397e.png"
+}
